@@ -559,7 +559,15 @@ enum moveErr chessServer_move(struct chess_board * board, int startMove_row, int
             if(endSpace.pieceOwner != startSpace.pieceOwner && endSpace.residingPiece == KING){
                 movementOutput = WINNING_MOVE;
             }
-            board->spaces[matrixSpaceAt(endMove_row, endMove_col)].residingPiece = movedPiece;
+            //Allows for Pawn Promotion
+            if(startSpace.residingPiece == PAWN && 
+            ((endMove_row == 7 && startSpace.pieceOwner == WHITE)||
+             (endMove_row == 0 && startSpace.pieceOwner == BLACK))){
+                board->spaces[matrixSpaceAt(endMove_row, endMove_col)].residingPiece = QUEEN;
+            }
+            else{
+                board->spaces[matrixSpaceAt(endMove_row, endMove_col)].residingPiece = movedPiece;
+            }
             board->spaces[matrixSpaceAt(endMove_row, endMove_col)].pieceOwner = movedPiecePlayer;
             board->spaces[matrixSpaceAt(endMove_row, endMove_col)].isEmpty = 0;
             board->spaces[matrixSpaceAt(startMove_row, startMove_col)].residingPiece = NO_PIECE;
@@ -607,7 +615,15 @@ void chessClient_move(struct chess_board * board, int startMove_row, int startMo
         board->spaces[matrixSpaceAt(startMove_row, startMove_col)].isEmpty = 0;
     }
     else {
-        board->spaces[matrixSpaceAt(endMove_row, endMove_col)].residingPiece = movedPiece;
+        //Allows for Pawn Promotion
+        if(startSpace.residingPiece == PAWN && 
+        ((endMove_row == 7 && startSpace.pieceOwner == WHITE)||
+            (endMove_row == 0 && startSpace.pieceOwner == BLACK))){
+            board->spaces[matrixSpaceAt(endMove_row, endMove_col)].residingPiece = QUEEN;
+        }
+        else{
+            board->spaces[matrixSpaceAt(endMove_row, endMove_col)].residingPiece = movedPiece;
+        }
         board->spaces[matrixSpaceAt(endMove_row, endMove_col)].pieceOwner = movedPiecePlayer;
         board->spaces[matrixSpaceAt(endMove_row, endMove_col)].isEmpty = 0;
         board->spaces[matrixSpaceAt(startMove_row, startMove_col)].residingPiece = NO_PIECE;
