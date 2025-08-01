@@ -1,9 +1,13 @@
 #include "ECO_common.h"
 
+#define SERVER_ADDRESS '172.236.241.97'
+
 //MUST CHANGE THIS HERE AND ON ECO_server.c TO WORK PROPERLY
 int CHANGE_TURNS_ENABLED = TRUE;
 
 enum player currentColor = EMPTY;
+
+
 
 void initializeMovement(struct movement * move, char startRow, char startCol, char endRow, char endCol){
     move->startRow = startRow - '1';

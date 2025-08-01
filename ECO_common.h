@@ -15,13 +15,12 @@
 #define CLEAR_SCREEN_AFTER_MOVE (0)
 
 //server-client includes
-#include <winsock2.h>
-#include <windows.h>
+#include <sys/socket.h>
 //#include <pthread.h>
 #include <errno.h>
 
 //server-client constants
-#pragma comment(lib,"ws2_32.lib") //Winsock Library
+//#pragma comment(lib,"ws2_32.lib") //Winsock Library
 
 #define MATCHMAKING_QUEUE_SIZE (256)
 

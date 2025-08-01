@@ -3,6 +3,8 @@
 
 #define NUM_MAX_CHESS_BOARDS (256)
 
+#define SERVER_ADDRESS ''
+
 //MUST CHANGE THIS HERE AND ON ECO_client.c TO WORK PROPERLY
 int CHANGE_TURNS_ENABLED  = TRUE;
 
@@ -311,7 +313,7 @@ int main(int argc, char *argv[]){
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
     ECOserver_address.sin_port = htons(socket_port);
-    ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
 
     //bind address & port to our socket
     if(bind(server_socket, (struct sockaddr *)&ECOserver_address,sizeof(ECOserver_address)) < 0){
