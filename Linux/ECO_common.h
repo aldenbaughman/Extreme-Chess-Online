@@ -29,6 +29,9 @@
 //server-client constants
 //#pragma comment(lib,"ws2_32.lib") //Winsock Library
 
+#define SERVER_ADDRESS "172.236.241.97"
+#define SERVER_PORT 5555
+
 #define MATCHMAKING_QUEUE_SIZE (256)
 
 //chess stuff

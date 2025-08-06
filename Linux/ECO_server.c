@@ -3,14 +3,13 @@
 
 #define NUM_MAX_CHESS_BOARDS (256)
 
-#define SERVER_ADDRESS "127.0.0.1"
-#define SERVER_PORT 5555
 //#define SERVER_ADDRESS "0.0.0.0"
 
 
 //MUST CHANGE THIS HERE AND ON ECO_client.c TO WORK PROPERLY
 int CHANGE_TURNS_ENABLED  = true;
 
+int sockfd_array[FD_SETSIZE];
 struct s_chessBoard gameBoards[NUM_MAX_CHESS_BOARDS];
 int boardsInUse[NUM_MAX_CHESS_BOARDS] = {0};
 
@@ -18,6 +17,15 @@ int boardsInUse[NUM_MAX_CHESS_BOARDS] = {0};
 
 int matched_client1= -1;
 int matched_client2= -1;
+
+int openSockfdArraySpace(){
+    int i = 1;
+    //if a board is being used, check next board
+    while(sockfd_array[i]){
+        i++;
+    }
+    return i;
+}
 
 int openBoardSpace(){
     int i = 0;
@@ -28,10 +36,13 @@ int openBoardSpace(){
     return i;
 }
 
-void drawSocketFD(fd_set sockets, int sockets_connected){
+
+void drawSocketFD(fd_set *sockets, int sockets_connected){
     printf("[");
-    for(int i = 0; i < sockets_connected;i++){
-        printf(" %ld ",sockets.__fds_bits[i]);
+    for(int i = 0; i < FD_SETSIZE;i++){
+        if(FD_ISSET(i, sockets)){
+            printf(" %d ", i);
+        } 
     }
     printf("]\n");
 }
@@ -212,66 +223,47 @@ void handle_connection(int s_socket){
 
     while(true){
         printf("\nHC: Listening for Activity Sockets: \n");
-        printf("\nHC: sockets_Connected: %d \n", sockets_connected-1);
+        printf("HC: sockets_Connected: %d \n", sockets_connected);
 
-        drawSocketFD(current_sockets, 10);
-        printf("HC: Number of Clients Currently Connected to the Server: %d\n", sockets_connected);
+        drawSocketFD(&current_sockets, 10);
+        printf("HC: Number of Clients Currently Connected to the Server: %d\n", sockets_connected - 1);
         ready_sockets = current_sockets;
 
         //printf("HC: Current Server Socket: %d with count: %d\n", ready_sockets.fd_array[0], ready_sockets.fd_count);
 
         //fd_setsize is max number allowed in set size, defined as 64 in our system
-        
-        if (select(maxConnSocket, &ready_sockets, NULL, NULL, NULL ) < 0){
+        //         maxConnSocket
+        if (select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL ) < 0){
             perror("HC: Select Failed\n");
             exit(EXIT_FAILURE);
         }
-        printf("HC: Activity on Socket: ");
-        //drawSocketFD(ready_sockets, sockets_connected);
 
-        if (ready_sockets.__fds_bits[0] == s_socket){
-            printf("HC: Client attempt to connect...");
-            int client_socket = accept(s_socket, NULL, NULL);
-            FD_SET(client_socket, &current_sockets);
-            maxConnSocket++;
-            printf("Client %d Accepted to the Server\n", client_socket);
-            sockets_connected++;
-        }
-        else{
-            //printf("HC: Current Server Socket: %d \n", ready_sockets.fd_array[0]);
-            printf("HC: Handling Request...\n");
-            if(handle_request(ready_sockets.__fds_bits[0])){
-                printf("HC: Client Lost Connection to Server");
-                FD_CLR(ready_sockets.__fds_bits[0], &current_sockets);
-                sockets_connected--;
-            }
-            printf("HC: Handle Request Success\n");
-        }
-        /*
-        for (int i = 0; i < maxConnSocket; i++){
-            printf("FOR LOOP ITR # %d\n", i);
-            printf("is socket %d set?: %d\n", ready_sockets.fd_array[i],FD_ISSET(ready_sockets.fd_array[i], &ready_sockets));
-            if(FD_ISSET(ready_sockets.fd_array[i], &ready_sockets)){
-                if (ready_sockets.fd_array[i] == s_socket){
-                    printf("Client attempt to connect...");
+        for (int i=0; i < FD_SETSIZE; i++){
+            if(FD_ISSET(i, &ready_sockets)){
+                if (i == s_socket){
+                    printf("HC: Client attempt to connect...");
                     int client_socket = accept(s_socket, NULL, NULL);
                     FD_SET(client_socket, &current_sockets);
-                    drawSocketFD(current_sockets, sockets_connected);
+                    FD_CLR(s_socket, &ready_sockets);
                     maxConnSocket++;
                     printf("Client %d Accepted to the Server\n", client_socket);
+                    sockets_connected++;
                 }
                 else{
-                    printf("Current Server Socket: %d with count: %d\n", ready_sockets.fd_array[0], i);
-                    printf("Handling Request...\n");
-                    handle_request(ready_sockets.fd_array[i]);
-                    printf("Success\n");
-                    FD_CLR(ready_sockets.fd_array[i], &current_sockets);
+                    //printf("HC: Current Server Socket: %d \n", ready_sockets.fd_array[0]);
+                    printf("HC: Handling Request...\n");
+                    if(handle_request(i)){
+                        printf("HC: Client Lost Connection to Server");
+                        FD_CLR(i, &current_sockets);
+                        sockets_connected--;
+                    }
+                    printf("HC: Handle Request Success\n");
                 }
             }
-            printf("restarting loop\n");
         }
-        */
-        //printf("HC: restarting loop\n");
+        printf("HC: Activity on Socket: ");
+        //drawSocketFD(ready_sockets, sockets_connected);
+        
     }
     
 
@@ -319,7 +311,7 @@ int main(int argc, char *argv[]){
     //initialize address & port for the server
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
-    ECOserver_address.sin_port = htons(5555);
+    ECOserver_address.sin_port = htons(SERVER_PORT);
 
     //BETTER SOULTION FOR SEVER ADDR
     //"" ALLOWS SERVER TO JUST USE ITS OWN ADDRESS
@@ -342,6 +334,8 @@ int main(int argc, char *argv[]){
 		return EXIT_FAILURE;
     }
     
+    //int client_socket = accept(sockfd, NULL, NULL);
+    //printf("Accepted client socket: %d\n", client_socket);
     
     handle_connection(sockfd);
 

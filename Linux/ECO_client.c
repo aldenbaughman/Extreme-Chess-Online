@@ -1,8 +1,5 @@
 #include "ECO_common.h"
 
-#define SERVER_ADDRESS "127.0.0.1"
-#define SERVER_PORT 5555
-
 //MUST CHANGE THIS HERE AND ON ECO_server.c TO WORK PROPERLY
 int CHANGE_TURNS_ENABLED = true;
 
@@ -196,8 +193,9 @@ int main(int argc, char *argv[]){
     printf("M: Connecting to Server...");
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
-    ECOserver_address.sin_port = socket_port;
+    ECOserver_address.sin_port = htons(SERVER_PORT);
     ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
+    //ECOserver_address.sin_addr.s_addr = INADDR_ANY;
     if(connect(client_socket, (struct sockaddr *)&ECOserver_address, sizeof(ECOserver_address)) < 0){
         printf("%d\n", errno);
         perror("Failed to Connect to Server");
