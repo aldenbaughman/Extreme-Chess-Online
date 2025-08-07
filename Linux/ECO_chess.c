@@ -152,7 +152,7 @@ void titleCIC_draw(){
     }
     char c;
     if(CLEAR_SCREEN_AFTER_MOVE){
-        system("cls");
+        system("clear");
     }
     printf("\n\n\n\n\n\n\n");
     while( (c= fgetc(f)) != EOF){
@@ -165,6 +165,7 @@ void titleCIC_draw(){
 }
 
 void titleClientECO_draw(){
+    system("clear");
     FILE *f = fopen("AsciiFiles/titleClientAscii.txt","r");
     if(f == NULL){
         printf("error opening text file\n");
@@ -188,7 +189,7 @@ void titleServerECO_draw(){
     }
     char c;
     //windows clear screen in terminal
-    //system("cls");
+    //system("clear");
 
     //clears screen in linux
     printf("%c", 12);
@@ -205,7 +206,7 @@ void playAgain_draw(){
         printf("error opening text file\n");
     }
     char c;
-    system("cls");
+    system("clear");
     while( (c= fgetc(f)) != EOF){
         putchar(c);
     }
@@ -230,7 +231,7 @@ void getMovementsFromFile(FILE *file, char* movements){
 }
 
 void drawChessBoardInClient(struct chess_board * board, enum player playerColor){
-    system("cls");
+    system("clear");
     
     if(playerColor == WHITE){
         printf("Black Captures:");
