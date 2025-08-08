@@ -206,7 +206,7 @@ void playAgain_draw(){
         printf("error opening text file\n");
     }
     char c;
-    system("clear");
+    //system("clear");
     while( (c= fgetc(f)) != EOF){
         putchar(c);
     }

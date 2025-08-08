@@ -60,6 +60,7 @@ void initializeBoard(int s_boardId,u_int64_t client1, u_int64_t client2){
 
 void requestToStartGame(int c_socket){
     struct response server_response;
+    char serverPayload[BUFFER_SIZE];
     
     if(matched_client1 == -1){
             printf("SG: Client %d is waiting to start a game\n", c_socket);
@@ -88,6 +89,8 @@ void requestToStartGame(int c_socket){
         server_response.client_id = player_white;
         server_response.board_id = board_id;
         server_response.sc_comm = GAME_START_WHITE;
+
+        responseToPayload(serverPayload, server_response);
         
         if(send(player_white, (char*)&server_response, sizeof(struct response),0)<0){
             perror("SG: Failed to Send start Game for White\n");
@@ -95,6 +98,9 @@ void requestToStartGame(int c_socket){
         }
 
         server_response.sc_comm = GAME_START_BLACK;
+
+        responseToPayload(serverPayload, server_response);
+
         if(send(player_black, (char*)&server_response, sizeof(struct response),0)<0){
             perror("SG: Failed to Send start Game for Black\n");
             exit(EXIT_FAILURE);
@@ -107,14 +113,17 @@ void requestToStartGame(int c_socket){
     }
 }
 
-void requestToMove(int client_socket, struct request* moveRequest){
+void requestToMove(int client_socket, struct response* moveRequest){
     struct response server_response;
-    enum moveErr moveOutput = chessServer_move(&gameBoards[moveRequest->board_id].board, moveRequest->move_req.startRow,
-                        moveRequest->move_req.startCol, moveRequest->move_req.endRow, moveRequest->move_req.endCol);
+    char serverResponse[BUFFER_SIZE];
+
+    enum moveErr moveOutput = chessServer_move(&gameBoards[moveRequest->board_id].board, moveRequest->move.startRow,
+                        moveRequest->move.startCol, moveRequest->move.endRow, moveRequest->move.endCol);
         if (moveOutput == VALID_PLACEMENT){
             
             //response to player moving piece
             server_response.sc_comm = VALID_PLACEMENT;
+
             if(send(client_socket, (char*)&server_response, sizeof(struct response),0)<0){
                     perror("Error Sending Confirmation of Move\n");
             }
@@ -122,7 +131,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
                 change_turn(&gameBoards[moveRequest->board_id].board);
             }
             //response to other player notifying them a move has been made and its thier turn
-            memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
+            memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
             if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
                  if(send(gameBoards[moveRequest->board_id].clientBlackId, (char*)&server_response, sizeof(struct response),0)<0){
                     perror("Error Sending Move to Opponent\n");
@@ -143,7 +152,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
                 }
 
                 //might cause problem bc of the derefferencing of movement struct 
-                server_response.opp_move = moveRequest->move_req;
+                server_response.move = moveRequest->move;
                 if(send(gameBoards[moveRequest->board_id].clientBlackId, (char*)&server_response, sizeof(struct response),0)<0){
                 perror("Error Sending Confirmation of Move\n");
                 }
@@ -154,7 +163,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
                 }
 
                 //might cause problem bc of the derefferencing of movement struct 
-                server_response.opp_move = moveRequest->move_req;
+                server_response.move = moveRequest->move;
                 if(send(gameBoards[moveRequest->board_id].clientWhiteId, (char*)&server_response, sizeof(struct response),0)<0){
                 perror("Error Sending Confirmation of Move\n");
                 }
@@ -171,13 +180,27 @@ void requestToMove(int client_socket, struct request* moveRequest){
 }
 
 int handle_request(int c_socket){
-    struct request client_request;
+    struct response client_request;
+    char clientPayload[BUFFER_SIZE];
 
     printf("HR: Waiting to recieve request...");
-    if(recv(c_socket, (char*)&client_request, sizeof(struct request),0) < 0){
+    if(recv(c_socket, clientPayload, sizeof(clientPayload),0) < 0){
         printf("Connnection Lost\n");
         return 1;
     }
+
+    
+    splitPayloadBySpaces(clientPayload, client_request);
+
+    printf("\n[payloadToResponse]: Checking Integrity of response: ");
+    printf(" %ld", client_request.client_id);
+    printf(" %d", client_request.sc_comm);
+    printf(" %ld", client_request.board_id);
+    printf(" %d", client_request.move.startRow);
+    printf(" %d", client_request.move.startCol);
+    printf(" %d", client_request.move.endRow);
+    printf(" %d\n", client_request.move.endCol);
+
     printf("package recieved\n");
     printf("HR: Verifying packet: client id %ld ", client_request.client_id);
     printf("board id: %ld", client_request.board_id);
