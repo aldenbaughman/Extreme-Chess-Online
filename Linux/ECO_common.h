@@ -265,7 +265,7 @@ void chess_run_client(int);
 
 void responseToPayload(char* payload, struct response responseInfo);
 
-int splitPayloadBySpaces(char* payload, struct response responseInfo);
+int payloadToResponse(char* payload, struct response* responseInfo);
 
 
 

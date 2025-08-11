@@ -49,12 +49,12 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
         printf("Movement Sent\n");
         
         printf("Waiting for Server Response...");
-        if(recv(socket, (char*)serverPayload, sizeof(serverPayload),0)<1){
+        if(recv(socket, &serverPayload, sizeof(serverPayload),0)<1){
             perror("Failed to recieve response");
             return;
         }
 
-        splitPayloadBySpaces(serverPayload, *serverResponse);
+        payloadToResponse(serverPayload, serverResponse);
 
         printf("recieved\n");
         if (serverResponse->sc_comm == VALID_PLACEMENT || serverResponse->sc_comm == WINNING_MOVE){
@@ -114,13 +114,13 @@ void chess_run_client(int socket){
 
     //recv confimation from server
     printf("CR: Waiting for response from server...");
-    if(recv(socket, responsePayload, sizeof(responsePayload),0)<1){
+    if(recv(socket, &responsePayload, sizeof(responsePayload),0)<1){
         perror("Failed to recieve response");
         return;
     }
     printf("Recieved\n");
 
-    splitPayloadBySpaces(responsePayload, serverResponse);
+    payloadToResponse(responsePayload, &serverResponse);
 
     clientRequest.client_id = serverResponse.client_id;
     clientRequest.board_id = serverResponse.board_id;
@@ -154,7 +154,9 @@ void chess_run_client(int socket){
     //recv confimation of said move, make move on board & draw, recv opp. move
     do{
         printf("CR: Waiting on Opponent's Move...");
-        recv(socket, (char*)&serverResponse, sizeof(struct response),0);
+        recv(socket, &responsePayload, sizeof(responsePayload),0);
+        payloadToResponse(responsePayload, &serverResponse);
+
         if(serverResponse.sc_comm == WINNING_MOVE){
             chessClient_move(client_board, serverResponse.move.startRow, serverResponse.move.startCol,
                             serverResponse.move.endRow, serverResponse.move.endCol);
