@@ -149,7 +149,7 @@ void requestToMove(int client_socket, struct response* moveRequest){
             }
             //response to other player notifying them a move has been made and its thier turn
         
-
+            memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
             if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
                  if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse), 0)<0){
                     perror("Error Sending Move to Opponent\n");
@@ -221,7 +221,7 @@ int handle_request(int c_socket){
 
     printf("\nHR: clientPayload: %s\n", clientPayload);
     payloadToResponse(clientPayload, &client_request);
-
+ 
     printf("\nHR: Checking Integrity of response: ");
     printf(" %ld", client_request.client_id);
     printf(" %d", client_request.sc_comm);

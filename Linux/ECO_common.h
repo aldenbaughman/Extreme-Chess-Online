@@ -267,5 +267,3 @@ void responseToPayload(char* payload, struct response responseInfo);
 
 int payloadToResponse(char* payload, struct response* responseInfo);
 
-
-

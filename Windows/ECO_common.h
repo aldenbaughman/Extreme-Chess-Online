@@ -260,4 +260,7 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
 
 void chess_run_client(int);
 
+void responseToPayload(char* payload, struct response responseInfo);
+
+int payloadToResponse(char* payload, struct response* responseInfo);
 
