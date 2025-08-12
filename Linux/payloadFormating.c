@@ -56,11 +56,11 @@ void responseToPayload(char* payload, struct response clientRequest){
                                                                  clientRequest.move.endCol);
     
 
-    printf("[responseToPayload]: %s\n", payload);
+    //printf("[responseToPayload]: %s\n", payload);
 }
 
 int payloadToResponse(char* payload, struct response* responseInfo){
-    printf("[payloadToResponse] input payload: %s\n", payload);
+    //printf("[payloadToResponse] input payload: %s\n", payload);
     char* temp = payload;
     int count = 0;
     char payloadCopy[BUFFER_SIZE];
@@ -89,34 +89,34 @@ int payloadToResponse(char* payload, struct response* responseInfo){
 
     */
 
-    printf("[payloadToResponse]: Copied payload: %s\n", payloadCopy);
+    //printf("[payloadToResponse]: Copied payload: %s\n", payloadCopy);
 
-    printf("[payloadToResponse]: Checking Integrity of response: ");
+    //printf("[payloadToResponse]: Checking Integrity of response: ");
 
     
 
     
 
     responseInfo->client_id = atoi(strtok(payload, " "));
-    printf(" %ld", responseInfo->client_id);
+    //printf(" %ld", responseInfo->client_id);
 
     responseInfo->sc_comm = atoi(strtok(NULL, " "));
-    printf(" %d", responseInfo->sc_comm);
+    //printf(" %d", responseInfo->sc_comm);
     
     responseInfo->board_id = atoi(strtok(NULL, " "));
-    printf(" %ld", responseInfo->board_id);
+    //printf(" %ld", responseInfo->board_id);
 
     responseInfo->move.startRow = atoi(strtok(NULL, " "));
-    printf(" %d", responseInfo->move.startRow);
+    //printf(" %d", responseInfo->move.startRow);
 
     responseInfo->move.startCol = atoi(strtok(NULL, " "));
-    printf(" %d", responseInfo->move.startCol);
+    //printf(" %d", responseInfo->move.startCol);
 
     responseInfo->move.endRow = atoi(strtok(NULL, " "));
-    printf(" %d", responseInfo->move.endRow);
+    //printf(" %d", responseInfo->move.endRow);
 
     responseInfo->move.endCol = atoi(strtok(NULL, " "));
-    printf(" %d\n", responseInfo->move.endCol);
+    //printf(" %d\n", responseInfo->move.endCol);
 
     return 1;
 }

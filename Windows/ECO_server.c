@@ -32,7 +32,7 @@ void drawSocketFD(fd_set sockets){
 }
 
 void initializeBoard(int s_boardId,u_int64 client1, u_int64 client2){
-    printf("IB: creating chess board\n");
+    printf("[initializeBoard] Creating Chess Board\n");
     gameBoards[s_boardId].board.spaces[matrixSpaceAt(0,0)].residingPiece = PAWN;
     //printf("Piece at board 0, space 0,0: %s\n", PIECE_TO_STRING_TEXT(gameBoards[s_boardId].board.spaces[matrixSpaceAt(0,0)].residingPiece));
     //server_board->board = malloc(sizeof(struct chess_board));
@@ -47,7 +47,7 @@ void requestToStartGame(int c_socket){
     char serverPayload[BUFFER_SIZE];
 
     if(matched_client1 == -1){
-            printf("SG: Client %d is waiting to start a game\n", c_socket);
+            printf("[requestToStartGame] Client %d is waiting to start a game\n", c_socket);
             matched_client1 = c_socket;
             return;
         }
@@ -67,7 +67,6 @@ void requestToStartGame(int c_socket){
             player_white = matched_client2;
         }
 
-        printf("SG: initializing Board \n");
         initializeBoard(board_id, player_white, player_black);
 
         server_response.client_id = player_white;
@@ -79,9 +78,11 @@ void requestToStartGame(int c_socket){
         server_response.move.endCol = 0;
 
         responseToPayload(serverPayload, server_response);
+        
+        printf("[requestToStartGame] Sending Start Game Messages to Matched Clients\n");
 
         if(send(player_white, serverPayload, sizeof(serverPayload),0)<0){
-            perror("SG: Failed to Send start Game for White\n");
+            perror("[requestToStartGame] Failed to Send start Game for White\n");
             exit(EXIT_FAILURE);
         }
         
@@ -91,11 +92,11 @@ void requestToStartGame(int c_socket){
         responseToPayload(serverPayload, server_response);
 
         if(send(player_black, serverPayload, sizeof(serverPayload),0)<0){
-            perror("SG: Failed to Send start Game for Black\n");
+            perror("[requestToStartGame] Failed to Send start Game for Black\n");
             exit(EXIT_FAILURE);
         }
-        printf("SG: Board Initialize Success\n");
-        printf("SG: Clients %d and %d are now matched together\n",matched_client1, matched_client2);
+
+        printf("[requestToStartGame] Clients %d and %d are now matched together\n",matched_client1, matched_client2);
         matched_client1 = -1;
         matched_client2 = -1;
         return;
@@ -114,8 +115,14 @@ void requestToMove(int client_socket, struct response* moveRequest){
     server_response.move.endRow = 0;
     server_response.move.endCol = 0;
 
-    enum moveErr moveOutput = chessServer_move(&gameBoards[moveRequest->board_id].board, moveRequest->move.startRow,
-                        moveRequest->move.startCol, moveRequest->move.endRow, moveRequest->move.endCol);
+    printf("[requestToMove] Checking Client's Requested Move\n");
+    enum moveErr moveOutput = chessServer_move(&gameBoards[moveRequest->board_id].board, 
+                                                moveRequest->move.startRow,
+                                                moveRequest->move.startCol, 
+                                                moveRequest->move.endRow, 
+                                                moveRequest->move.endCol);
+        
+        printf("[requestToMove] Clients Move is deemed: %s\n", MOVEERR_TO_STRING(moveOutput));
         if (moveOutput == VALID_PLACEMENT){
             
             //response to player moving piece
@@ -124,24 +131,33 @@ void requestToMove(int client_socket, struct response* moveRequest){
 
             responseToPayload(serverResponse, server_response);
 
-            printf("RM: Checking integrity of server payload %s", serverResponse);
+            printf("[requestToMove] Sending Response to Client: ");
+            printf(" %ld", server_response.client_id);
+            printf(" %d", server_response.sc_comm);
+            printf(" %ld", server_response.board_id);
+            printf(" %d", server_response.move.startRow);
+            printf(" %d", server_response.move.startCol);
+            printf(" %d", server_response.move.endRow);
+            printf(" %d\n", server_response.move.endCol);
 
             if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("Error Sending Confirmation of Move\n");
+                perror("[requestToMove] Error Sending Confirmation of Move\n");
             }
             if(CHANGE_TURNS_ENABLED ){
                 change_turn(&gameBoards[moveRequest->board_id].board);
             }
             //response to other player notifying them a move has been made and its thier turn
             //memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
+            
+            printf("[requestToMove] Sending Client's move to Client's Oppenent\n");
             if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
                  if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("Error Sending Move to Opponent\n");
+                    perror("[requestToMove] Error Sending Move to Opponent\n");
                 }               
             }
             else{
                 if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("Error Sending Move to Opponent\n");
+                    perror("[requestToMove] Error Sending Move to Opponent\n");
                 }
             }
         }
@@ -152,24 +168,24 @@ void requestToMove(int client_socket, struct response* moveRequest){
 
             if(gameBoards[moveRequest->board_id].board.board_turn == WHITE){
                 if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("Error Sending Confirmation of Move\n");
+                perror("[requestToMove] Error Sending Confirmation of Move\n");
                 }
 
                 //might cause problem bc of the derefferencing of movement struct 
                 server_response.move = moveRequest->move;
                 if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("Error Sending Confirmation of Move\n");
+                perror("[requestToMove] Error Sending Confirmation of Move\n");
                 }
             }
             else{
                 if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("Error Sending Confirmation of Move\n");
+                perror("[requestToMove] Error Sending Confirmation of Move\n");
                 }
 
                 //might cause problem bc of the derefferencing of movement struct 
                 server_response.move = moveRequest->move;
                 if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("Error Sending Confirmation of Move\n");
+                perror("[requestToMove] Error Sending Confirmation of Move\n");
                 }
             }
             boardsInUse[moveRequest->board_id] = FALSE;
@@ -180,7 +196,7 @@ void requestToMove(int client_socket, struct response* moveRequest){
             responseToPayload(serverResponse, server_response);
             
             if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
-                perror("Error Sending Confirmation of Move\n");
+                perror("[requestToMove] Error Sending Confirmation of Move\n");
             }
         }
 }
@@ -197,16 +213,19 @@ int handle_request(int c_socket){
     client_request.move.endRow = 0;
     client_request.move.endCol = 0;
 
-    printf("HR: Waiting to recieve request...");
+    printf("[handle_request] Waiting to recieve request...");
     if(recv(c_socket, clientPayload, sizeof(clientPayload), 0) < 0){
         printf("Connnection Lost\n");
         return 1;
     }
+    
+    printf("Package Recieved\n");
+
 
     printf("\nHR: clientPayload: %s\n", clientPayload);
     payloadToResponse(clientPayload, &client_request);
 
-    printf("\nHR: Checking Integrity of response: ");
+    printf("[handle_request] Package Contents:");
     printf(" %ld", client_request.client_id);
     printf(" %d", client_request.sc_comm);
     printf(" %ld", client_request.board_id);
@@ -215,11 +234,18 @@ int handle_request(int c_socket){
     printf(" %d", client_request.move.endRow);
     printf(" %d\n", client_request.move.endCol);
 
-    printf("package recieved\n");
-    printf("HR: Verifying packet: client id %d ", client_request.client_id);
-    printf("board id: %d", client_request.board_id);
-    printf("\n");
-    printf("HR: %s\n", MOVEERR_TO_STRING(client_request.sc_comm));
+    
+    printf("[handle_request] Client ID: %ld\n", client_request.client_id);
+    printf("[handle_request] Board ID: %ld\n", client_request.board_id);
+    printf("[handle_request] Comm: %s\n", MOVEERR_TO_STRING(client_request.sc_comm));
+    printf("[handle_request] Start:");
+    printf(" %d", client_request.move.startRow);
+    printf(" %d\n", client_request.move.startCol);
+
+    printf("[handle_request] MoveTo:");
+    printf(" %d", client_request.move.endRow);
+    printf(" %d\n", client_request.move.endCol);
+
     switch(client_request.sc_comm){
         case START_GAME_REQUEST:
         requestToStartGame(c_socket);
@@ -250,70 +276,45 @@ void handle_connection(int s_socket){
 
     int maxConnSocket = 1;
 
-    printf("HC: Server Socket Set as: %d\n", s_socket);
-
-    printf("HC: Server Ready to Connect to Clients\n");
+    
+    printf("[handle_connection] Server File Descriptor: %d\n", s_socket);
+    printf("[handle_connection] Maximum Number of Possible Clients: %d\n", FD_SETSIZE - 1);
+    printf("[handle_connection] Server Ready to Connect to Clients\n");
     while(TRUE){
-        printf("\nHC: Listening for Activity Sockets: ");
+        printf("\n[handle_connection] Number of Clients Connected to the Server: %d \n", current_sockets.fd_count - 1);
+        printf("[handle_connection] Listening for Activity on File Descriptors: \n");
+        printf("[handle_connection] ");
         drawSocketFD(current_sockets);
-        printf("HC: Number of Clients Currently Connected to the Server: %d\n", current_sockets.fd_count - 1);
+
         ready_sockets = current_sockets;
 
         //printf("HC: Current Server Socket: %d with count: %d\n", ready_sockets.fd_array[0], ready_sockets.fd_count);
 
         //fd_setsize is max number allowed in set size, defined as 64 in our system
         if (select(maxConnSocket, &ready_sockets, NULL, NULL, NULL ) < 0){
-            perror("HC: Select Failed\n");
+            perror("[handle_connection] Select Failed\n");
             exit(EXIT_FAILURE);
         }
         printf("HC: Activity on Socket: ");
         drawSocketFD(ready_sockets);
 
         if (ready_sockets.fd_array[0] == s_socket){
-            printf("HC: Client attempt to connect...");
+            printf("[handle_connection] Client attempt to connect...\n");
             int client_socket = accept(s_socket, NULL, NULL);
             FD_SET(client_socket, &current_sockets);
             maxConnSocket++;
-            printf("Client %d Accepted to the Server\n", client_socket);
+            printf("[handle_connection] Client %d Accepted to the Server\n", client_socket);
         }
         else{
             //printf("HC: Current Server Socket: %d \n", ready_sockets.fd_array[0]);
-            printf("HC: Handling Request...\n");
+            printf("[handle_connection] Handling Request...\n");
             if(handle_request(ready_sockets.fd_array[0])){
-                printf("HC: Client Lost Connection to Server");
+                printf("[handle_connection] Client Lost Connection to Server\n");
                 FD_CLR(ready_sockets.fd_array[0], &current_sockets);
             }
-            printf("HC: Handle Request Success\n");
+            printf("[handle_connection] Handle Request Success\n");
         }
-        /*
-        for (int i = 0; i < maxConnSocket; i++){
-            printf("FOR LOOP ITR # %d\n", i);
-            printf("is socket %d set?: %d\n", ready_sockets.fd_array[i],FD_ISSET(ready_sockets.fd_array[i], &ready_sockets));
-            if(FD_ISSET(ready_sockets.fd_array[i], &ready_sockets)){
-                if (ready_sockets.fd_array[i] == s_socket){
-                    printf("Client attempt to connect...");
-                    int client_socket = accept(s_socket, NULL, NULL);
-                    FD_SET(client_socket, &current_sockets);
-                    drawSocketFD(current_sockets);
-                    maxConnSocket++;
-                    printf("Client %d Accepted to the Server\n", client_socket);
-                }
-                else{
-                    printf("Current Server Socket: %d with count: %d\n", ready_sockets.fd_array[0], i);
-                    printf("Handling Request...\n");
-                    handle_request(ready_sockets.fd_array[i]);
-                    printf("Success\n");
-                    FD_CLR(ready_sockets.fd_array[i], &current_sockets);
-                }
-            }
-            printf("restarting loop\n");
-        }
-        */
-        //printf("HC: restarting loop\n");
     }
-    
-
-
 }
 
 int main(int argc, char *argv[]){
@@ -322,27 +323,8 @@ int main(int argc, char *argv[]){
     int server_socket, socket_port, accepted_client, opt;
     //setting time as seed for rand()
     srand(time(0));
-    
-    while((opt = getopt(argc,argv, "c")) != -1){
-		switch (opt){
-			case 'c' :
-				CHANGE_TURNS_ENABLED  = TRUE;
-				printf("INFO: Disabling Changing turns after a player moves\n");
-				break;
-		}
-	}
-
-    //set port from command line
-    if (argc > 1) {
-		socket_port = strtol(argv[1], NULL, 10);
-		printf("INFO: setting server port as: %d\n", socket_port);
-	} else {
-		//fprintf(stderr, USAGE_STRING, argv[0]);
-        //socket_port = LOCAL_PORT;
-	}
-
 	
-	printf("\nInitialising Winsock...");
+	printf("\n[MAIN] Initialising Winsock...");
 	//Initializes WinSock library
     if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
 	{
@@ -352,10 +334,13 @@ int main(int argc, char *argv[]){
 	
 	printf("Initialised.\n");
 
+    printf("[MAIN] Creating Socket\n");
+
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET){
-        printf("Could not create socket : %d", WSAGetLastError());
+        printf("[MAIN] Could not create socket error num: %d", WSAGetLastError());
     }
-    printf("Socket Created.\n");
+
+    printf("[MAIN] Server Socket File Discriptor Created: %d\n", server_socket);
 
     int optval = 1;
 	setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (void *)&optval, sizeof(optval));
@@ -363,21 +348,35 @@ int main(int argc, char *argv[]){
     //initialize address & port for the server
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
+
+    printf("[MAIN] Setting Server Port as: %d\n", SERVER_PORT);
     ECOserver_address.sin_port = htons(SERVER_PORT);
-    ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    //Debugging tool Enabled in header file
+    if (USE_LOCAL_HOST){
+        printf("[MAIN] Setting Server Address as: 127.0.0.1\n");
+        ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    }
+    else{
+        printf("[MAIN] Setting Server Address as: %s\n", SERVER_ADDRESS);
+        ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
+    }
 
     //bind address & port to our socket
+    printf("[MAIN] Binding Address to Server Socket\n");
     if(bind(server_socket, (struct sockaddr *)&ECOserver_address,sizeof(ECOserver_address)) < 0){
-		perror("Unable to bind socket");
+		perror("[Main] Unable to bind socket");
 		return EXIT_FAILURE;
     }
 
     //listen for connections from client/s
+    printf("[MAIN] Listening on Server Socket\n");
     if(listen(server_socket, 5) < 0){
-		perror("Unable to listen on socket");
+		perror("[Main] Unable to listen on socket");
 		return EXIT_FAILURE;
     }
     
+    printf("[MAIN] Server is Ready to Accept Clients\n\n");
     handle_connection(server_socket);
 
     closesocket(server_socket);

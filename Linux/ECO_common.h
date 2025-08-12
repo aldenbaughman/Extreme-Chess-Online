@@ -1,3 +1,17 @@
+//DEBUGGING TOOLS
+
+// 0: For Linode Server Ip
+// 1: for Localhost Ip
+#define USE_LOCAL_HOST 1
+
+// 1: makes client clear screen after every move
+// 0: disables client clear screen so user can view console information 
+//    while client is connecting to server and between moves
+#define CLEAR_SCREEN_CLIENT 0
+
+#define SERVER_ADDRESS "172.236.241.97"
+#define SERVER_PORT 5555
+
 //chess game includes
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,14 +21,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define LOCAL_PORT (3333)
-
 #define CHESS_BOARD_SIZE (8)
 #define BUFFER_SIZE (256)
-
-//Developer Options
-#define SWITCH_TEAMS_AFTER_MOVEMENT (1)
-#define CLEAR_SCREEN_AFTER_MOVE (0)
 
 //server-client includes
 #include <sys/select.h>
@@ -29,9 +37,7 @@
 //server-client constants
 //#pragma comment(lib,"ws2_32.lib") //Winsock Library
 
-//#define SERVER_ADDRESS "172.236.241.97"
-#define SERVER_ADDRESS "127.0.0.1"
-#define SERVER_PORT 5555
+
 
 #define MATCHMAKING_QUEUE_SIZE (256)
 

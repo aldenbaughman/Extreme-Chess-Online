@@ -151,7 +151,8 @@ void titleCIC_draw(){
         printf("error opening text file\n");
     }
     char c;
-    if(CLEAR_SCREEN_AFTER_MOVE){
+    //Debugging Tool Enabled in Client
+    if (CLEAR_SCREEN_CLIENT){
         system("cls");
     }
     printf("\n\n\n\n\n\n\n");
@@ -200,7 +201,13 @@ void playAgain_draw(){
         printf("error opening text file\n");
     }
     char c;
-    system("cls");
+    //Debugging Tool Enabled in Client
+    if (CLEAR_SCREEN_CLIENT){
+        system("clear");
+    }
+    else{
+        printf("\n");
+    }
     while( (c= fgetc(f)) != EOF){
         putchar(c);
     }
@@ -225,10 +232,13 @@ void getMovementsFromFile(FILE *file, char* movements){
 }
 
 void drawChessBoardInClient(struct chess_board * board, enum player playerColor){
-    //system("cls");
+    //Debugging Tool Enabled in Client
+    if (CLEAR_SCREEN_CLIENT){
+        system("cls");
+    }
     
     if(playerColor == WHITE){
-        printf("Black Captures:");
+        printf("\nBlack Captures:");
         for (int i = 0; i < board->numBlackCaptures; i++){
             printf(" %s ", PIECE_TO_STRING_BOARD(board->blackCaptures[i]));
         }

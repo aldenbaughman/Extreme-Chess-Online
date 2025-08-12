@@ -1,13 +1,23 @@
+//DEBUGGING TOOLS
+
+// 0: For Linode Server Ip
+// 1: for Localhost Ip
+#define LOCAL_OR_SERVER_IP 1
+
+// 1: makes client clear screen after every move
+// 0: disables client clear screen so user can view console information 
+//    while client is connecting to server and between moves
+#define CLEAR_SCREEN_CLIENT 1
+
+#define SERVER_ADDRESS "172.236.241.97"
+#define SERVER_PORT 5555
+
 //chess game includes
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <time.h>
-
-#define SERVER_ADDRESS "172.236.241.97"
-//define SERVER_ADDRESS "127.0.0.1"
-#define SERVER_PORT 5555
 
 #define CHESS_BOARD_SIZE (8)
 #define BUFFER_SIZE (256)
