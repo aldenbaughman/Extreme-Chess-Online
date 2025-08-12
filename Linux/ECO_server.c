@@ -149,7 +149,7 @@ void requestToMove(int client_socket, struct response* moveRequest){
             }
             //response to other player notifying them a move has been made and its thier turn
         
-            memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
+            //memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
             if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
                  if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse), 0)<0){
                     perror("Error Sending Move to Opponent\n");
