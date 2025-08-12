@@ -7,7 +7,7 @@
 // 1: makes client clear screen after every move
 // 0: disables client clear screen so user can view console information 
 //    while client is connecting to server and between moves
-#define CLEAR_SCREEN_CLIENT 1
+#define CLEAR_SCREEN_CLIENT 0
 
 #define SERVER_ADDRESS "172.236.241.97"
 #define SERVER_PORT 5555

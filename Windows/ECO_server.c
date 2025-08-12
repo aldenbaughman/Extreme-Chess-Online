@@ -353,8 +353,10 @@ int main(int argc, char *argv[]){
     ECOserver_address.sin_port = htons(SERVER_PORT);
 
     //Debugging tool Enabled in header file
-    if (USE_LOCAL_HOST){
+    if (LOCAL_OR_SERVER_IP){
         printf("[MAIN] Setting Server Address as: 127.0.0.1\n");
+        
+        //Windows version only works with "inet_addr("127.0.0.1")" not INADDR_ANY
         ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     }
     else{

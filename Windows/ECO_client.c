@@ -39,7 +39,6 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
         fgets(buffer, BUFFER_SIZE, stdin);
         printf("\n");
 
-        printf("Sending Move...\n");
         initializeMovement(&clientRequest->move, buffer[1], buffer[0], buffer[4], buffer[3]);
         clientRequest->sc_comm = MOVE_REQUEST;
         printf("[sendMoveRequestToServer] Requesting Move: client ID - %ld board ID - %ld request - %s move - %d%d %d%d\n",
@@ -75,6 +74,7 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
                 change_turn(client_board);
             }
             drawChessBoardInClient(client_board, currentColor);
+            printf("[sendMoveRequestToServer] Piece Moved Successfully, Waiting for Opponents Response...\n");
             loopCondition = 0;
         }
         else{
@@ -176,7 +176,6 @@ void chess_run_client(int socket){
                             serverResponse.move.endRow, serverResponse.move.endCol);
             drawChessBoardInClient(client_board, currentColor);
             sendMoveRequestToServer(socket, client_board, &clientRequest, &serverResponse, buffer);
-            drawChessBoardInClient(client_board, currentColor);
             if(serverResponse.sc_comm == WINNING_MOVE){
                 printf("You Won! ");
                 gameCondition = 0;
@@ -218,11 +217,23 @@ int main(int argc, char *argv[]){
     printf("[MAIN] Connecting to Server\n");
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
+
+    printf("[MAIN] Setting Server Port as: %d\n", SERVER_PORT);
     ECOserver_address.sin_port = htons(SERVER_PORT);
-    ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
+
+    if (LOCAL_OR_SERVER_IP){
+        printf("[MAIN] Setting Server Address as: 127.0.0.1\n");
+        //Windows version only works with "inet_addr("127.0.0.1")" not INADDR_ANY
+        ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    }
+    else{
+        printf("[MAIN] Setting Server Address as: %s\n", SERVER_ADDRESS);
+        ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
+    }
+
     if(connect(client_socket, (struct sockaddr *)&ECOserver_address, sizeof(ECOserver_address)) < 0){
         //perror("Failed to Connect to Server");
-        printf("\nM: Failed to Connect to Server, Attempting to Reconnect...");
+        printf("\n[MAIN] Failed to Connect to Server, Attempting to Reconnect...");
         int i;
         do{
            i = connect(client_socket, (struct sockaddr *)&ECOserver_address, sizeof(ECOserver_address));
