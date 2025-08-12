@@ -191,7 +191,7 @@ int main(int argc, char *argv[]){
 		printf("\nINFO: setting server port as: %d\n", socket_port);
 	} else {
 		//fprintf(stderr, USAGE_STRING, argv[0]);
-        socket_port = LOCAL_PORT;
+        //socket_port = LOCAL_PORT;
 	}
 
     printf("M: Initialising Winsock...");
@@ -215,8 +215,8 @@ int main(int argc, char *argv[]){
     printf("M: Connecting to Server...");
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
-    ECOserver_address.sin_port = htons(socket_port);
-    ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    ECOserver_address.sin_port = htons(SERVER_PORT);
+    ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
     if(connect(client_socket, (struct sockaddr *)&ECOserver_address, sizeof(ECOserver_address)) < 0){
         //perror("Failed to Connect to Server");
         printf("\nM: Failed to Connect to Server, Attempting to Reconnect...");

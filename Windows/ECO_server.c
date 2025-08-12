@@ -338,7 +338,7 @@ int main(int argc, char *argv[]){
 		printf("INFO: setting server port as: %d\n", socket_port);
 	} else {
 		//fprintf(stderr, USAGE_STRING, argv[0]);
-        socket_port = LOCAL_PORT;
+        //socket_port = LOCAL_PORT;
 	}
 
 	
@@ -363,7 +363,7 @@ int main(int argc, char *argv[]){
     //initialize address & port for the server
     struct sockaddr_in ECOserver_address;
     ECOserver_address.sin_family = AF_INET;
-    ECOserver_address.sin_port = htons(socket_port);
+    ECOserver_address.sin_port = htons(SERVER_PORT);
     ECOserver_address.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     //bind address & port to our socket

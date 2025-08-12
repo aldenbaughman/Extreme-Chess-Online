@@ -5,7 +5,9 @@
 #include <unistd.h>
 #include <time.h>
 
-#define LOCAL_PORT (3333)
+#define SERVER_ADDRESS "172.236.241.97"
+//define SERVER_ADDRESS "127.0.0.1"
+#define SERVER_PORT 5555
 
 #define CHESS_BOARD_SIZE (8)
 #define BUFFER_SIZE (256)
