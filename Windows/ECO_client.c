@@ -12,7 +12,7 @@ void initializeMovement(struct movement * move, char startRow, char startCol, ch
     move->endCol = tolower(endCol) - 'a';
 }
 
-void sendMoveRequestToServer(int socket, struct chess_board* client_board, struct request * clientRequest, struct response * serverResponse, char*buffer){
+void sendMoveRequestToServer(int socket, struct chess_board* client_board, struct response * clientRequest, struct response * serverResponse, char*buffer){
     int loopCondition = 0;
     char clientPayload[BUFFER_SIZE];
     char serverPayload[BUFFER_SIZE];
@@ -20,8 +20,8 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
     do{
         drawChessBoardInClient(client_board, currentColor);
         if(serverResponse->sc_comm == VALID_PLACEMENT){
-            printf("MR: Opponent moved %c%c to %c%c. ", serverResponse->opp_move.startCol + 'a', serverResponse->opp_move.startRow + '1',
-                                                serverResponse->opp_move.endCol + 'a', serverResponse->opp_move.endRow + '1');
+            printf("MR: Opponent moved %c%c to %c%c. ", serverResponse->move.startCol + 'a', serverResponse->move.startRow + '1',
+                                                serverResponse->move.endCol + 'a', serverResponse->move.endRow + '1');
         }
         else if(serverResponse->sc_comm != VALID_PLACEMENT || serverResponse->sc_comm != GAME_START_WHITE){
             printf("MR: %s Please Try Again and ", MOVEERR_TO_STRING(serverResponse->sc_comm));
@@ -35,22 +35,22 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
         printf("\n");
 
         printf("Sending Move...\n");
-        initializeMovement(&clientRequest->move_req, buffer[1], buffer[0], buffer[4], buffer[3]);
+        initializeMovement(&clientRequest->move, buffer[1], buffer[0], buffer[4], buffer[3]);
         clientRequest->sc_comm = MOVE_REQUEST;
         printf("Verifying request: client ID - %d board ID - %d request - %s move - %d%d %d%d\n",
                     clientRequest->client_id, clientRequest->board_id, MOVEERR_TO_STRING(clientRequest->sc_comm), 
-                    clientRequest->move_req.startRow, clientRequest->move_req.startCol, clientRequest->move_req.endRow, clientRequest->move_req.endCol);
+                    clientRequest->move.startRow, clientRequest->move.startCol, clientRequest->move.endRow, clientRequest->move.endCol);
         
         responseToPayload(clientPayload, *clientRequest);  
         
-        if(send(socket, (char*)clientRequest, sizeof(struct request),0)<1){
+        if(send(socket, clientPayload, sizeof(clientPayload),0)<1){
             printf("Failed Sending Move %d\n" , WSAGetLastError());
             return;
         }
         printf("Movement Sent\n");
         
         printf("Waiting for Server Response...");
-        if(recv(socket, (char*)serverResponse, sizeof(struct response),0)<1){
+        if(recv(socket, serverPayload, sizeof(serverPayload),0)<1){
             printf("Failed to recieve response %d\n" , WSAGetLastError());
             return;
         }
@@ -59,8 +59,8 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
 
         printf("recieved\n");
         if (serverResponse->sc_comm == VALID_PLACEMENT || serverResponse->sc_comm == WINNING_MOVE){
-            chessClient_move(client_board, clientRequest->move_req.startRow,clientRequest->move_req.startCol,
-                            clientRequest->move_req.endRow, clientRequest->move_req.endCol);
+            chessClient_move(client_board, clientRequest->move.startRow,clientRequest->move.startCol,
+                            clientRequest->move.endRow, clientRequest->move.endCol);
             if(CHANGE_TURNS_ENABLED){
                 change_turn(client_board);
             }
@@ -76,7 +76,7 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
 
 void chess_run_client(int socket){
     int gameCondition = 1;
-    struct request clientRequest;
+    struct response clientRequest;
     char requestPayload[BUFFER_SIZE];
     struct response serverResponse;
     char responsePayload[BUFFER_SIZE];
@@ -95,10 +95,10 @@ void chess_run_client(int socket){
     clientRequest.client_id = 0;
     clientRequest.sc_comm = START_GAME_REQUEST;
     clientRequest.board_id = 0;
-    clientRequest.move_req.startRow = 0;
-    clientRequest.move_req.startCol = 0;
-    clientRequest.move_req.endRow = 0;
-    clientRequest.move_req.endCol = 0;
+    clientRequest.move.startRow = 0;
+    clientRequest.move.startCol = 0;
+    clientRequest.move.endRow = 0;
+    clientRequest.move.endCol = 0;
 
     responseToPayload(requestPayload, clientRequest);   
 
@@ -112,7 +112,7 @@ void chess_run_client(int socket){
 
     //recv confimation from server
     printf("CR: Waiting for response from server...");
-    if(recv(socket, &responsePayload, sizeof(responsePayload),0)<1){
+    if(recv(socket, responsePayload, sizeof(responsePayload),0)<1){
         printf("Failed to recieve response %d\n" , WSAGetLastError());
         return;
     }
@@ -151,19 +151,19 @@ void chess_run_client(int socket){
     //recv confimation of said move, make move on board & draw, recv opp. move
     do{
         printf("CR: Waiting on Opponent's Move...");
-        recv(socket, (char*)&serverResponse, sizeof(struct response),0);
+        recv(socket, responsePayload, sizeof(responsePayload),0);
         payloadToResponse(responsePayload, &serverResponse);
 
         if(serverResponse.sc_comm == WINNING_MOVE){
-            chessClient_move(client_board, serverResponse.opp_move.startRow, serverResponse.opp_move.startCol,
-                            serverResponse.opp_move.endRow, serverResponse.opp_move.endCol);
+            chessClient_move(client_board, serverResponse.move.startRow, serverResponse.move.startCol,
+                            serverResponse.move.endRow, serverResponse.move.endCol);
             drawChessBoardInClient(client_board, currentColor);
             printf("Opponent Won! ");
             gameCondition = 0;
         }
         else{
-            chessClient_move(client_board, serverResponse.opp_move.startRow, serverResponse.opp_move.startCol,
-                            serverResponse.opp_move.endRow, serverResponse.opp_move.endCol);
+            chessClient_move(client_board, serverResponse.move.startRow, serverResponse.move.startCol,
+                            serverResponse.move.endRow, serverResponse.move.endCol);
             drawChessBoardInClient(client_board, currentColor);
             sendMoveRequestToServer(socket, client_board, &clientRequest, &serverResponse, buffer);
             drawChessBoardInClient(client_board, currentColor);

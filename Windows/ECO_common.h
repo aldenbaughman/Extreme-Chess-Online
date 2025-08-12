@@ -211,19 +211,11 @@ struct movement{
     u_int64 endCol;
 };
 
-struct request{
-    u_int64 client_id;
-    u_int64 board_id;
-    enum moveErr sc_comm;
-    struct movement move_req;
-    char clientUsername[32];
-};
-
 struct response{
     u_int64 client_id;
     u_int64 board_id;
     enum moveErr sc_comm;
-    struct movement opp_move;
+    struct movement move;
     char opponentUsername[32];
 };
 
@@ -256,7 +248,7 @@ void initializeBoard(int, u_int64, u_int64);
 
 void initializeMovement(struct movement * move, char startRow, char startCol, char endRow, char endCol);
 
-void sendMoveRequestToServer(int socket, struct chess_board* client_board, struct request * clientRequest, struct response * serverResponse, char*buffer);
+void sendMoveRequestToServer(int socket, struct chess_board* client_board, struct response * clientRequest, struct response * serverResponse, char*buffer);
 
 void chess_run_client(int);
 

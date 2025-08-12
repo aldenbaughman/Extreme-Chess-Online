@@ -225,7 +225,7 @@ void getMovementsFromFile(FILE *file, char* movements){
 }
 
 void drawChessBoardInClient(struct chess_board * board, enum player playerColor){
-    system("cls");
+    //system("cls");
     
     if(playerColor == WHITE){
         printf("Black Captures:");

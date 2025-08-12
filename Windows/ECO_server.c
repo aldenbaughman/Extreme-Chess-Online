@@ -80,7 +80,7 @@ void requestToStartGame(int c_socket){
 
         responseToPayload(serverPayload, server_response);
 
-        if(send(player_white, (char*)&server_response, sizeof(struct response),0)<0){
+        if(send(player_white, serverPayload, sizeof(serverPayload),0)<0){
             perror("SG: Failed to Send start Game for White\n");
             exit(EXIT_FAILURE);
         }
@@ -102,7 +102,7 @@ void requestToStartGame(int c_socket){
     }
 }
 
-void requestToMove(int client_socket, struct request* moveRequest){
+void requestToMove(int client_socket, struct response* moveRequest){
     struct response server_response;
     char serverResponse[BUFFER_SIZE];
     
@@ -114,8 +114,8 @@ void requestToMove(int client_socket, struct request* moveRequest){
     server_response.move.endRow = 0;
     server_response.move.endCol = 0;
 
-    enum moveErr moveOutput = chessServer_move(&gameBoards[moveRequest->board_id].board, moveRequest->move_req.startRow,
-                        moveRequest->move_req.startCol, moveRequest->move_req.endRow, moveRequest->move_req.endCol);
+    enum moveErr moveOutput = chessServer_move(&gameBoards[moveRequest->board_id].board, moveRequest->move.startRow,
+                        moveRequest->move.startCol, moveRequest->move.endRow, moveRequest->move.endCol);
         if (moveOutput == VALID_PLACEMENT){
             
             //response to player moving piece
@@ -124,6 +124,8 @@ void requestToMove(int client_socket, struct request* moveRequest){
 
             responseToPayload(serverResponse, server_response);
 
+            printf("RM: Checking integrity of server payload %s", serverResponse);
+
             if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
                     perror("Error Sending Confirmation of Move\n");
             }
@@ -131,7 +133,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
                 change_turn(&gameBoards[moveRequest->board_id].board);
             }
             //response to other player notifying them a move has been made and its thier turn
-            memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
+            //memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
             if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
                  if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
                     perror("Error Sending Move to Opponent\n");
@@ -154,7 +156,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
                 }
 
                 //might cause problem bc of the derefferencing of movement struct 
-                server_response.opp_move = moveRequest->move_req;
+                server_response.move = moveRequest->move;
                 if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
                 perror("Error Sending Confirmation of Move\n");
                 }
@@ -165,7 +167,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
                 }
 
                 //might cause problem bc of the derefferencing of movement struct 
-                server_response.opp_move = moveRequest->move_req;
+                server_response.move = moveRequest->move;
                 if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
                 perror("Error Sending Confirmation of Move\n");
                 }
@@ -184,7 +186,7 @@ void requestToMove(int client_socket, struct request* moveRequest){
 }
 
 int handle_request(int c_socket){
-    struct request client_request;
+    struct response client_request;
     char clientPayload[BUFFER_SIZE];
 
     client_request.client_id = 0;
@@ -196,7 +198,7 @@ int handle_request(int c_socket){
     client_request.move.endCol = 0;
 
     printf("HR: Waiting to recieve request...");
-    if(recv(c_socket, &clientPayload, sizeof(clientPayload), 0) < ){
+    if(recv(c_socket, clientPayload, sizeof(clientPayload), 0) < 0){
         printf("Connnection Lost\n");
         return 1;
     }
@@ -216,7 +218,7 @@ int handle_request(int c_socket){
     printf("package recieved\n");
     printf("HR: Verifying packet: client id %d ", client_request.client_id);
     printf("board id: %d", client_request.board_id);
-    printf("\n");0
+    printf("\n");
     printf("HR: %s\n", MOVEERR_TO_STRING(client_request.sc_comm));
     switch(client_request.sc_comm){
         case START_GAME_REQUEST:
