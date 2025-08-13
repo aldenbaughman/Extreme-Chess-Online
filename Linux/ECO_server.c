@@ -231,9 +231,9 @@ int handle_request(int c_socket){
     client_request.move.endCol = 0;
 
     printf("[handle_request] Waiting to recieve request...");
-    if(recv(c_socket, &clientPayload, sizeof(clientPayload),0) < 0){
+    if(recv(c_socket, &clientPayload, sizeof(clientPayload),0) <= 0){
         printf("Connnection Lost\n");
-        return 1;
+        return -1;
     }
 
     printf("Package Recieved\n");
@@ -327,11 +327,19 @@ void handle_connection(int s_socket){
                 }
                 else{
                     //printf("HC: Current Server Socket: %d \n", ready_sockets.fd_array[0]);
-                    printf("[handle_connection] Handling Request...\n");
+                    printf("[handle_connection] Handling Request for socket: %d\n", i);
                     if(handle_request(i)){
                         printf("[handle_connection] Client Lost Connection to Server\n");
                         FD_CLR(i, &current_sockets);
                         sockets_connected--;
+
+                        //search hash table for dc client's opp & board num
+
+                        //notify opp that they have won through client's forfit
+
+                        //open up board space
+
+
                     }
                     printf("[handle_connection] Handle Request Success\n");
                 }

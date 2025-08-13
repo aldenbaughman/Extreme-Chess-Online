@@ -214,7 +214,7 @@ int main(int argc, char *argv[]){
     ECOserver_address.sin_port = htons(SERVER_PORT);
     //ECOserver_address.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
 
-    if (LOCAL_OR_SERVER_IP){
+    if (USE_LOCAL_HOST){
         printf("[MAIN] Setting Server Address as: 127.0.0.1\n");
         ECOserver_address.sin_addr.s_addr = INADDR_ANY;
     }
