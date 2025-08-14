@@ -9,6 +9,7 @@
 //    while client is connecting to server and between moves
 #define CLEAR_SCREEN_CLIENT 0
 
+//Address of Linode Server
 #define SERVER_ADDRESS "172.236.241.97"
 #define SERVER_PORT 5555
 
@@ -76,7 +77,8 @@ enum moveErr{
     GAME_START_BLACK,
     START_GAME_REQUEST,
     MOVE_REQUEST,
-    MOVE_RESPONSE
+    MOVE_RESPONSE,
+    OPPENENT_DC_YOU_WIN
 
 };
 
@@ -125,7 +127,8 @@ static const char * const moveErr_messages [] = {
     "Game found you are Black",
     "Client Requesting to Start a Game",
     "Client Requesting piece movement",
-    "Server Response to piece movement"
+    "Server Response to piece movement",
+    "Your Oppenent has Disconnected, You Win!"
 
 };                                  
 
@@ -256,6 +259,15 @@ struct queue {
 	int write;
 	int size;
 	int maxLength;
+};
+
+// Keeps track of a client's oppenent and board ID allowing
+// Server to notify the opponent when the client disconnects that 
+// they have won, ending their game and freeing up the game board
+struct clientInfo {
+    int clientOpponentsFD;
+    int clientBoardID;
+    bool isOpponentConnected;
 };
 
 void handle_connections(int);

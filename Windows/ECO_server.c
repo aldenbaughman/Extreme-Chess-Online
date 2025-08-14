@@ -9,6 +9,8 @@ int CHANGE_TURNS_ENABLED  = TRUE;
 struct s_chessBoard gameBoards[NUM_MAX_CHESS_BOARDS];
 int boardsInUse[NUM_MAX_CHESS_BOARDS] = {0};
 
+struct clientInfo connectedClientInfo[FD_SETSIZE];
+
 //struct queue* MM_queue = NULL;
 
 int matched_client1= -1;
@@ -85,10 +87,10 @@ void requestToStartGame(int c_socket){
             perror("[requestToStartGame] Failed to Send start Game for White\n");
             exit(EXIT_FAILURE);
         }
-        
+
         server_response.client_id = player_black;
         server_response.sc_comm = GAME_START_BLACK;
-
+        
         responseToPayload(serverPayload, server_response);
 
         if(send(player_black, serverPayload, sizeof(serverPayload),0)<0){
@@ -122,83 +124,84 @@ void requestToMove(int client_socket, struct response* moveRequest){
                                                 moveRequest->move.endRow, 
                                                 moveRequest->move.endCol);
         
-        printf("[requestToMove] Clients Move is deemed: %s\n", MOVEERR_TO_STRING(moveOutput));
-        if (moveOutput == VALID_PLACEMENT){
-            
-            //response to player moving piece
-            server_response.sc_comm = VALID_PLACEMENT;
-            memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
+    printf("[requestToMove] Clients Move is deemed: %s\n", MOVEERR_TO_STRING(moveOutput));
 
-            responseToPayload(serverResponse, server_response);
-
-            printf("[requestToMove] Sending Response to Client: ");
-            printf(" %ld", server_response.client_id);
-            printf(" %d", server_response.sc_comm);
-            printf(" %ld", server_response.board_id);
-            printf(" %d", server_response.move.startRow);
-            printf(" %d", server_response.move.startCol);
-            printf(" %d", server_response.move.endRow);
-            printf(" %d\n", server_response.move.endCol);
-
-            if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-            }
-            if(CHANGE_TURNS_ENABLED ){
-                change_turn(&gameBoards[moveRequest->board_id].board);
-            }
-            //response to other player notifying them a move has been made and its thier turn
-            //memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
-            
-            printf("[requestToMove] Sending Client's move to Client's Oppenent\n");
-            if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
-                 if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("[requestToMove] Error Sending Move to Opponent\n");
-                }               
-            }
-            else{
-                if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("[requestToMove] Error Sending Move to Opponent\n");
-                }
-            }
-        }
+    if (moveOutput == VALID_PLACEMENT){
         
-        else if (moveOutput == WINNING_MOVE){
-            server_response.sc_comm = WINNING_MOVE;
-            responseToPayload(serverResponse, server_response);
+        //response to player moving piece
+        server_response.sc_comm = VALID_PLACEMENT;
+        memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
 
-            if(gameBoards[moveRequest->board_id].board.board_turn == WHITE){
-                if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
+        responseToPayload(serverResponse, server_response);
 
-                //might cause problem bc of the derefferencing of movement struct 
-                server_response.move = moveRequest->move;
+        printf("[requestToMove] Sending Response to Client: ");
+        printf(" %ld", server_response.client_id);
+        printf(" %d", server_response.sc_comm);
+        printf(" %ld", server_response.board_id);
+        printf(" %d", server_response.move.startRow);
+        printf(" %d", server_response.move.startCol);
+        printf(" %d", server_response.move.endRow);
+        printf(" %d\n", server_response.move.endCol);
+
+        if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+        }
+        if(CHANGE_TURNS_ENABLED ){
+            change_turn(&gameBoards[moveRequest->board_id].board);
+        }
+        //response to other player notifying them a move has been made and its thier turn
+        //memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
+        
+        printf("[requestToMove] Sending Client's move to Client's Oppenent\n");
+        if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
                 if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
-            }
-            else{
-                if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
-
-                //might cause problem bc of the derefferencing of movement struct 
-                server_response.move = moveRequest->move;
-                if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
-            }
-            boardsInUse[moveRequest->board_id] = FALSE;
-
+                perror("[requestToMove] Error Sending Move to Opponent\n");
+            }               
         }
         else{
-            server_response.sc_comm = moveOutput;
-            responseToPayload(serverResponse, server_response);
-            
-            if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
+            if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
+                perror("[requestToMove] Error Sending Move to Opponent\n");
             }
         }
+    }
+        
+    else if (moveOutput == WINNING_MOVE){
+        server_response.sc_comm = WINNING_MOVE;
+        responseToPayload(serverResponse, server_response);
+
+        if(gameBoards[moveRequest->board_id].board.board_turn == WHITE){
+            if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+            }
+
+            //might cause problem bc of the derefferencing of movement struct 
+            server_response.move = moveRequest->move;
+            if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+            }
+        }
+        else{
+            if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+            }
+
+            //might cause problem bc of the derefferencing of movement struct 
+            server_response.move = moveRequest->move;
+            if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+            }
+        }
+        boardsInUse[moveRequest->board_id] = FALSE;
+
+    }
+    else{
+        server_response.sc_comm = moveOutput;
+        responseToPayload(serverResponse, server_response);
+        
+        if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+        }
+    }
 }
 
 int handle_request(int c_socket){
@@ -214,7 +217,7 @@ int handle_request(int c_socket){
     client_request.move.endCol = 0;
 
     printf("[handle_request] Waiting to recieve request...");
-    if(recv(c_socket, clientPayload, sizeof(clientPayload), 0) < 0){
+    if(recv(c_socket, clientPayload, sizeof(clientPayload), 0) <= 0){
         printf("Connnection Lost\n");
         return 1;
     }

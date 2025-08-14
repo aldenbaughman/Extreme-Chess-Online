@@ -210,7 +210,7 @@ void playAgain_draw(){
     
     //Debugging Tool Enabled in Client
     if (CLEAR_SCREEN_CLIENT){
-        system("clear");
+        //system("clear");
     }
     else{
         printf("\n");

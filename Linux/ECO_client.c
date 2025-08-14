@@ -77,6 +77,11 @@ void sendMoveRequestToServer(int socket, struct chess_board* client_board, struc
             printf("[sendMoveRequestToServer] Piece Moved Successfully, Waiting for Opponents Response...\n");
             loopCondition = 0;
         }
+        else if (serverResponse->sc_comm == OPPENENT_DC_YOU_WIN){
+            drawChessBoardInClient(client_board, currentColor);
+            loopCondition = 0;
+            return;
+        }
         else{
             loopCondition = 1;
         }
@@ -144,7 +149,10 @@ void chess_run_client(int socket){
         //drawChessBoardInClient(client_board, currentColor);
         
         sendMoveRequestToServer(socket, client_board, &clientRequest, &serverResponse, buffer);
-
+        if (serverResponse.sc_comm == OPPENENT_DC_YOU_WIN){
+            printf("[sendMoveRequestToServer] You Opponent Disconnected, You Win!\n");
+            return;
+        }
         break;
 
         //if black, create board & recv for opp. intial move
@@ -174,6 +182,11 @@ void chess_run_client(int socket){
             printf("Opponent Won! ");
             gameCondition = 0;
         }
+        else if(serverResponse.sc_comm == OPPENENT_DC_YOU_WIN){
+            drawChessBoardInClient(client_board, currentColor);
+            printf("Opponent Disconncted, You Win! \n");
+            gameCondition = 0;
+        }
         else{
             chessClient_move(client_board, serverResponse.move.startRow, serverResponse.move.startCol,
                             serverResponse.move.endRow, serverResponse.move.endCol);
@@ -181,6 +194,10 @@ void chess_run_client(int socket){
             sendMoveRequestToServer(socket, client_board, &clientRequest, &serverResponse, buffer);
             if(serverResponse.sc_comm == WINNING_MOVE){
                 printf("You Won! ");
+                gameCondition = 0;
+            }
+            else if (serverResponse.sc_comm == OPPENENT_DC_YOU_WIN){
+                printf("[sendMoveRequestToServer] You Opponent Disconnected, You Win!\n");
                 gameCondition = 0;
             }
         }

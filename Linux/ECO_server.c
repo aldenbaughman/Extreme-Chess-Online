@@ -13,6 +13,8 @@ int sockfd_array[FD_SETSIZE];
 struct s_chessBoard gameBoards[NUM_MAX_CHESS_BOARDS];
 int boardsInUse[NUM_MAX_CHESS_BOARDS] = {0};
 
+struct clientInfo connectedClientInfo[FD_SETSIZE];
+
 //struct queue* MM_queue = NULL;
 
 int matched_client1= -1;
@@ -102,6 +104,17 @@ void requestToStartGame(int c_socket){
             perror("[requestToStartGame] Failed to Send start Game for White\n");
             exit(EXIT_FAILURE);
         }
+
+        connectedClientInfo[player_white].clientOpponentsFD = player_black;
+        connectedClientInfo[player_white].clientBoardID = board_id;
+        connectedClientInfo[player_white].isOpponentConnected = true;
+
+        printf("[requestToStartGame] Storing information about client %d: Opponent FD - %d   Board ID - %d isOpponentConnected - %d\n", player_white, 
+                                                                                                                                        connectedClientInfo[player_white].clientOpponentsFD,
+                                                                                                                                        connectedClientInfo[player_white].clientBoardID, 
+                                                                                                                                        connectedClientInfo[player_white].isOpponentConnected = true);
+
+
         server_response.client_id = player_black;
         server_response.sc_comm = GAME_START_BLACK;
 
@@ -111,6 +124,15 @@ void requestToStartGame(int c_socket){
             perror("[requestToStartGame] Failed to Send start Game for Black\n");
             exit(EXIT_FAILURE);
         }
+
+        connectedClientInfo[player_black].clientOpponentsFD = player_white;
+        connectedClientInfo[player_black].clientBoardID = board_id;
+        connectedClientInfo[player_black].isOpponentConnected = true;
+
+        printf("[requestToStartGame] Storing information about client %d: Opponent FD - %d   Board ID - %d isOpponentConnected - %d\n", player_black, 
+                                                                                                                                        connectedClientInfo[player_black].clientOpponentsFD,
+                                                                                                                                        connectedClientInfo[player_black].clientBoardID, 
+                                                                                                                                        connectedClientInfo[player_black].isOpponentConnected = true);
 
         printf("[requestToStartGame] Clients %d and %d are now matched together\n",matched_client1, matched_client2);
         matched_client1 = -1;
@@ -138,84 +160,92 @@ void requestToMove(int client_socket, struct response* moveRequest){
                                                 moveRequest->move.endRow, 
                                                 moveRequest->move.endCol);
         
-                                                printf("[requestToMove] Clients Move is deemed: %s\n", MOVEERR_TO_STRING(moveOutput));
-        if (moveOutput == VALID_PLACEMENT){
-            
-            //response to player moving piece
-            
-            server_response.sc_comm = VALID_PLACEMENT;
-            memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
-
-            responseToPayload(serverResponse, server_response);
-
-            printf("[requestToMove] Sending Response to Client: ");
-            printf(" %ld", server_response.client_id);
-            printf(" %d", server_response.sc_comm);
-            printf(" %ld", server_response.board_id);
-            printf(" %d", server_response.move.startRow);
-            printf(" %d", server_response.move.startCol);
-            printf(" %d", server_response.move.endRow);
-            printf(" %d\n", server_response.move.endCol);
-
-            if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("[requestToMove] Error Sending Confirmation of Move\n");
-            }
-            if(CHANGE_TURNS_ENABLED ){
-                change_turn(&gameBoards[moveRequest->board_id].board);
-            }
-            //response to other player notifying them a move has been made and its thier turn
-        
-            //memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
-            printf("[requestToMove] Sending Client's move to Client's Oppenent\n");
-            if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
-                 if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse), 0)<0){
-                    perror("[requestToMove] Error Sending Move to Opponent\n");
-                }               
-            }
-            else{
-                if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                    perror("[requestToMove] Error Sending Move to Opponent\n");
-                }
-            }
+    printf("[requestToMove] Clients Move is deemed: %s\n", MOVEERR_TO_STRING(moveOutput));
+    
+    if (!connectedClientInfo[client_socket].isOpponentConnected){
+        //notify client that they have won through opp's forfit
+        char notifyClientOfForfit[] = "0 14 0 0 0 0 0";
+        if(send(client_socket, notifyClientOfForfit, sizeof(notifyClientOfForfit), 0) < 0){
+            perror("[handle_connection] Error Notifing Opponent they won through forfit\n");
         }
-        
-        else if (moveOutput == WINNING_MOVE){
-            server_response.sc_comm = WINNING_MOVE;
-            responseToPayload(serverResponse, server_response);
+        return;
+    }
+    if (moveOutput == VALID_PLACEMENT){
+    
+    //response to player moving piece
+    server_response.sc_comm = VALID_PLACEMENT;
+    memcpy(&server_response.move, &moveRequest->move, sizeof(struct movement));
 
-            if(gameBoards[moveRequest->board_id].board.board_turn == WHITE){
-                if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
+    responseToPayload(serverResponse, server_response);
 
-                //might cause problem bc of the derefferencing of movement struct 
-                server_response.move = moveRequest->move;
-                if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
+    printf("[requestToMove] Sending Response to Client: ");
+    printf(" %ld", server_response.client_id);
+    printf(" %d", server_response.sc_comm);
+    printf(" %ld", server_response.board_id);
+    printf(" %d", server_response.move.startRow);
+    printf(" %d", server_response.move.startCol);
+    printf(" %d", server_response.move.endRow);
+    printf(" %d\n", server_response.move.endCol);
+
+    if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+    }
+    if(CHANGE_TURNS_ENABLED ){
+        change_turn(&gameBoards[moveRequest->board_id].board);
+    }
+    //response to other player notifying them a move has been made and its thier turn
+
+    //memcpy(&server_response.opp_move, &moveRequest->move_req, sizeof(struct movement));
+    printf("[requestToMove] Sending Client's move to Client's Oppenent\n");
+    if (client_socket == gameBoards[moveRequest->board_id].clientWhiteId){
+        if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse), 0)<0){
+            perror("[requestToMove] Error Sending Move to Opponent\n");
+        }               
+    }
+    else{
+        if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Move to Opponent\n");
+        }
+    }
+}
+    
+    else if (moveOutput == WINNING_MOVE){
+        server_response.sc_comm = WINNING_MOVE;
+        responseToPayload(serverResponse, server_response);
+
+        if(gameBoards[moveRequest->board_id].board.board_turn == WHITE){
+            if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
             }
-            else{
-                if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
 
-                //might cause problem bc of the derefferencing of movement struct 
-                server_response.move = moveRequest->move;
-                if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
-                }
+            //might cause problem bc of the derefferencing of movement struct 
+            server_response.move = moveRequest->move;
+            if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
             }
-            boardsInUse[moveRequest->board_id] = false;
-
         }
         else{
-            server_response.sc_comm = moveOutput;
-            responseToPayload(serverResponse, server_response);
+            if(send(gameBoards[moveRequest->board_id].clientBlackId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+            }
 
-            if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
-                perror("[requestToMove] Error Sending Confirmation of Move\n");
+            //might cause problem bc of the derefferencing of movement struct 
+            server_response.move = moveRequest->move;
+            if(send(gameBoards[moveRequest->board_id].clientWhiteId, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
             }
         }
+        boardsInUse[moveRequest->board_id] = false;
+
+    }
+    else{
+        server_response.sc_comm = moveOutput;
+        responseToPayload(serverResponse, server_response);
+
+        if(send(client_socket, serverResponse, sizeof(serverResponse),0)<0){
+            perror("[requestToMove] Error Sending Confirmation of Move\n");
+        }
+    }
 }
 
 int handle_request(int c_socket){
@@ -333,12 +363,24 @@ void handle_connection(int s_socket){
                         FD_CLR(i, &current_sockets);
                         sockets_connected--;
 
-                        //search hash table for dc client's opp & board num
+                        //notify client that they have won through opp's forfit
+                        //If they are waiting for thier opp's move
+                        char notifyClientOfForfit[] = "0 14 0 0 0 0 0";
+                        if(send(connectedClientInfo[i].clientOpponentsFD, notifyClientOfForfit, sizeof(notifyClientOfForfit), 0) < 0){
+                            perror("[handle_connection] Error Notifing Opponent they won through forfit\n");
+                        }
+                        
+                        // allows client to know when client has disconnected if 
+                        // it is there turn and they havent sent a move yet
+                        // used in requestToMove
+                        connectedClientInfo[connectedClientInfo[i].clientOpponentsFD].isOpponentConnected = false;
 
-                        //notify opp that they have won through client's forfit
+                        connectedClientInfo[i].clientOpponentsFD = 0;
+                        connectedClientInfo[i].clientBoardID = 0;
+                        connectedClientInfo[i].clientBoardID = false;
 
                         //open up board space
-
+                        boardsInUse[connectedClientInfo[i].clientBoardID] = false;
 
                     }
                     printf("[handle_connection] Handle Request Success\n");
