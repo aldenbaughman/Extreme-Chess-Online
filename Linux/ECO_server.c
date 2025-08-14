@@ -394,6 +394,9 @@ void handle_connection(int s_socket){
 }
 
 int main(int argc, char *argv[]){
+    //Prevents Server from Crashing when Last Client Disconnects
+    signal(SIGPIPE, SIG_IGN);
+    
     titleServerECO_draw();
     int sockfd, socket_port, accepted_client, opt;
     struct sockaddr_in addr;

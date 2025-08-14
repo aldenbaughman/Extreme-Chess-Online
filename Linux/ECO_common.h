@@ -2,7 +2,7 @@
 
 // 0: For Linode Server Ip
 // 1: for Localhost Ip
-#define USE_LOCAL_HOST 0
+#define USE_LOCAL_HOST 1
 
 // 1: makes client clear screen after every move
 // 0: disables client clear screen so user can view console information 

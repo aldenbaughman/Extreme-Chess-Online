@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdbool.h>
 
 #define CHESS_BOARD_SIZE (8)
 #define BUFFER_SIZE (256)
